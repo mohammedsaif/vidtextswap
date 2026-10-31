@@ -1,0 +1,7 @@
+rapidocr>=3.0
+onnxruntime>=1.17
+opencv-python>=4.8
+pillow>=10.1
+numpy
+imageio-ffmpeg>=0.4
+anthropic>=0.40
