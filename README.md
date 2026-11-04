@@ -42,6 +42,16 @@ font weight and alignment, so the edit is hard to spot.
 Measuring the style and drawing the new text is plain computer vision on purpose:
 it's fast and predictable, and the same input always gives the same result.
 
+## Try it online (free)
+
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/mohammedsaif/vidtextswap/blob/main/colab/VidTextSwap_demo.ipynb)
+
+Click the badge, choose **Runtime → Run all**, and open the link it prints. The full web app
+runs on Google's free machines, with nothing to install. The notebook can also process a
+whole folder from your Google Drive.
+
+Project page: **[huggingface.co/spaces/mohammedsaif/vidtextswap](https://huggingface.co/spaces/mohammedsaif/vidtextswap)**
+
 ## Install
 
 Requires **Python 3.10+**. ffmpeg is installed automatically through `imageio-ffmpeg`.
@@ -126,6 +136,27 @@ vidtextswap -i my_videos --rules replacements.csv --review
 `type` is optional (`phone`, `text`, or empty for auto). `font` is optional, a `.ttf`/`.otf`
 to use for that rule only.
 
+### Web app (local)
+
+```bash
+pip install -e ".[web]"
+python space/app.py          # then open http://127.0.0.1:7860
+```
+
+`space/` can also be deployed as a Gradio Space on Hugging Face (this needs a PRO plan for
+Gradio Spaces since mid-2026). `showcase/` is the free static project page.
+
+### From Python
+
+```python
+from vidtextswap import Rule
+from vidtextswap.api import process_files
+
+results = process_files(["post.jpg", "reel.mp4"], [Rule("050 123 4567", "050 765 4321")], "out")
+for r in results:
+    print(r.file, r.status, r.output)
+```
+
 ### Output
 
 ```
@@ -201,7 +232,7 @@ colour.
 ## Roadmap
 
 - [ ] Arabic and other scripts (OCR model + right-to-left layout)
-- [ ] Web app: upload, review in the browser, download
+- [x] Web app: upload, review in the browser, download (Hugging Face Space)
 - [x] AI background repair (LaMa)
 - [x] Plain-language instructions (Ollama, Gemini, Groq, Claude or any OpenAI-compatible AI)
 - [ ] Automatic font identification from the frame

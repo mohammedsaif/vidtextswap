@@ -1,5 +1,5 @@
 """VidTextSwap - find text in videos and images and replace it in the same style."""
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 __all__ = ["Rule", "load_rules_csv", "__version__"]
 

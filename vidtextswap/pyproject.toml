@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "vidtextswap"
+dynamic = ["version"]
+description = "Find text in videos and images and replace it, keeping the original style."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Mohammed Saif" }]
+keywords = ["video", "ocr", "text replacement", "instagram", "reels", "batch editing"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Graphics",
+]
+dependencies = [
+    "rapidocr>=3.0",
+    "onnxruntime>=1.17",
+    "opencv-python>=4.8",
+    "pillow>=10.1",
+    "numpy",
+    "imageio-ffmpeg>=0.4",
+]
+
+[project.optional-dependencies]
+ai = ["anthropic>=0.40"]   # only needed for --llm claude
+dev = ["pytest>=7", "anthropic>=0.40"]
+
+[project.scripts]
+vidtextswap = "vidtextswap.cli:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "vidtextswap.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["vidtextswap*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

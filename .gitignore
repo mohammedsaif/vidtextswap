@@ -12,3 +12,7 @@ updated/
 *.mp4
 *.mov
 !docs/**
+!space/examples/
+!space/examples/*
+!showcase/
+!showcase/*

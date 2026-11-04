@@ -1,0 +1,2 @@
+vidtextswap @ git+https://github.com/mohammedsaif/vidtextswap.git@main
+opencv-python-headless>=4.8
