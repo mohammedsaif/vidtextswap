@@ -74,42 +74,48 @@ def scan(files, progress=gr.Progress()):
     progress(0, desc="Reading the text in your files...")
     items, texts = scan_files(paths)
     if not texts:
-        return "No text found on screen.", [["", ""]]
+        return "No text found on screen.", gr.update(), gr.update()
     md = ["**Found on screen:**"]
     suggestions = []
     for cat, found in items.items():
         md.append(f"- **{cat}:** " + ", ".join(f"`{t}`" for t in list(found)[:6]))
-        suggestions += [[t, ""] for t in list(found)[:3]]
+        suggestions += list(found)[:3]
     if len(md) == 1:
         md.append("- " + ", ".join(f"`{t}`" for t in list(texts)[:8]))
-    md.append("\nThe table on the right now holds what was found. Type the new text in "
-              "**Replace with**, and clear any row you don't want to change.")
-    return "\n".join(md), (suggestions[:MAX_RULES] or [["", ""]])
+    md.append("\n**Find** on the right now lists what was found. Delete the lines you don't want to "
+              "change, and type the new text on the same line number in **Replace with**.")
+    return "\n".join(md), "\n".join(suggestions[:MAX_RULES]), ""
 
 
-def _rules(rows):
+def _lines(text):
+    return [line.strip() for line in (text or "").splitlines()]
+
+
+def _rules(find_text, replace_text):
+    """Line N of Find pairs with line N of Replace with. Blank Find lines are skipped."""
+    finds, replaces = _lines(find_text), _lines(replace_text)
     rules, problems = [], []
-    for row in (rows.values.tolist() if hasattr(rows, "values") else rows) or []:
-        find, replace = (str(c).strip() if c is not None else "" for c in (list(row) + ["", ""])[:2])
-        if not find or find.lower() == "nan":
+    for i, find in enumerate(finds):
+        if not find:
             continue
-        if not replace or replace.lower() == "nan":
-            problems.append(f"'{find}' has no replacement")
+        replace = replaces[i] if i < len(replaces) else ""
+        if not replace:
+            problems.append(f"line {i + 1}: '{find}' has no replacement on line {i + 1} of Replace with")
             continue
         try:
             rules.append(Rule(find, replace))
         except ValueError as e:
-            problems.append(str(e))
+            problems.append(f"line {i + 1}: {e}")
     if problems and not rules:
         raise gr.Error("; ".join(problems))
     if not rules:
-        raise gr.Error("Fill in at least one row: the old text in Find, the new text in Replace with.")
+        raise gr.Error("Type the old text in Find and the new text in Replace with (one per line, same order).")
     return rules[:MAX_RULES], problems
 
 
-def run(files, rows, repair, reflow, progress=gr.Progress()):
+def run(files, find_text, replace_text, repair, reflow, progress=gr.Progress()):
     paths = _paths(files)
-    rules, problems = _rules(rows)
+    rules, problems = _rules(find_text, replace_text)
     _cleanup()
     out = Path(tempfile.mkdtemp(dir=WORK))
 
@@ -145,7 +151,7 @@ def run(files, rows, repair, reflow, progress=gr.Progress()):
 
 
 def load_examples():
-    return EXAMPLES, [["050 123 4567", "050 765 4321"], ["Al Quoz", "JLT"], ["31 Dec", "15 Jan"]]
+    return EXAMPLES, "050 123 4567\nAl Quoz\n31 Dec", "050 765 4321\nJLT\n15 Jan"
 
 
 INTRO = f"""
@@ -161,8 +167,8 @@ Videos keep their sound, and the new text shows only for the seconds the old tex
 HOW = f"""
 **How to use**
 1. Upload up to {MAX_FILES} images or videos (videos up to {MAX_VIDEO_SECONDS}s), or click **Try the sample files**.
-2. Click **Find text** to see the phone numbers, websites and dates on screen. Or just type in the table.
-3. Put the new text next to each old text, then click **Replace**.
+2. Click **Find text** to see the phone numbers, websites and dates on screen. Or just type below.
+3. Type the old text in **Find** and the new text in **Replace with** (one per line), then click **Replace**.
 
 *Privacy: files are processed on this server and deleted within an hour. Don't upload anything confidential.
 For private or long videos, [install the free tool]({REPO}) and run it on your own computer.*
@@ -179,10 +185,12 @@ with gr.Blocks(title="VidTextSwap - replace text in videos", fill_width=False) a
                 scan_btn = gr.Button("1. Find text", variant="secondary", size="sm")
             found = gr.Markdown(HOW)
         with gr.Column(scale=1):
-            rules = gr.Dataframe(headers=["Find (old text)", "Replace with"], value=[["", ""], ["", ""]],
-                                 datatype=["str", "str"], type="array", interactive=True,
-                                 row_count=2, row_limits=(1, MAX_RULES), column_count=2,
-                                 label="What to change (one per row)")
+            gr.Markdown("**What to change**: one item per line. Line 1 of *Find* becomes line 1 of *Replace with*, and so on.")
+            with gr.Row():
+                find_box = gr.Textbox(label="Find (old text)", lines=4, max_lines=MAX_RULES,
+                                      placeholder="050 123 4567\nAl Quoz")
+                replace_box = gr.Textbox(label="Replace with (new text)", lines=4, max_lines=MAX_RULES,
+                                         placeholder="050 765 4321\nJLT")
             with gr.Accordion("Options", open=False):
                 repair = gr.Radio(["Auto", "AI (best quality)", "Fast"], value="Auto",
                                   label="Background repair",
@@ -194,9 +202,9 @@ with gr.Blocks(title="VidTextSwap - replace text in videos", fill_width=False) a
         summary = gr.Markdown()
     download = gr.DownloadButton("Download", visible=False, variant="primary")
 
-    sample_btn.click(load_examples, outputs=[files, rules])
-    scan_btn.click(scan, inputs=files, outputs=[found, rules])
-    go.click(run, inputs=[files, rules, repair, reflow], outputs=[gallery, summary, download],
+    sample_btn.click(load_examples, outputs=[files, find_box, replace_box])
+    scan_btn.click(scan, inputs=files, outputs=[found, find_box, replace_box])
+    go.click(run, inputs=[files, find_box, replace_box, repair, reflow], outputs=[gallery, summary, download],
              concurrency_limit=1)   # one job at a time on free hardware
 
 if __name__ == "__main__":
